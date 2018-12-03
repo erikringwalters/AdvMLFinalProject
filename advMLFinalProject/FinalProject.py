@@ -2,8 +2,12 @@
 """
 Created on Wed Nov 28 15:09:12 2018
 
-@author: Erik, Jeremy
+@authors: Jeremy Locatelli,
+          Erik Ring-Walters 
 """
 
 
 import tensorflow as tf
+
+data = open('C:/Users/Erik/Documents/beemovie.txt', 'r').read()
+#
