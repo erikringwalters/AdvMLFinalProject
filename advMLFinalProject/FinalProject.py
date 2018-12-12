@@ -46,7 +46,19 @@ outputs, states = tf.nn.dynamic_rnn(basic_cell, X, dtype=tf.float32, sequence_le
 init = tf.global_variables_initializer()
 
 oneHot = tf.one_hot(X_modified[0,:],vocab_size)
+
+def fetch_batch(X, y,strt_pt ,batch_size=25):
+    st = strt_pt
+    end = strt_pt + batch_size
+    X_batch = X[st:end,:]
+    y_batch = y[st:end,:]
+     
+batch = fetch_batch(X, y, 10)
+
+
 with tf.Session() as sess:
     init.run()
     one_hot_out = oneHot.eval()
     print(one_hot_out)
+    
+    
