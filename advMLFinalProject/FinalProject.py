@@ -1,14 +1,8 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Dec 10 15:43:02 2018
-
-@author: Erik
-"""
 
 import tensorflow as tf
 import numpy as np
 
-data = open('./Documents/beemovie.txt', 'r').read() # should be simple plain text file
+data = open('E:/Documents/beemovie.txt', 'r').read() # should be simple plain text file
 
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
@@ -30,35 +24,57 @@ for i in range(0, len(data)-seq_length-1, 1):
 X_modified = np.reshape(X, (len(X), seq_length))
 y_modified = np.reshape(y, (len(y), seq_length))
 
-# n_steps is just the sequence length
-# we need to build a batch function that gives us batches of size [mini_batch_size,n_steps,n_inputs]
-n_inputs = 1
+# @params: X: the input array to fetch a batch from
+# @params: y the output array to fetch a corosponding batch from
+# @params: batch_size: The size of the batch you want to pull
+# @func: Picks a random number 
+def fetchBatch(X,y,batch_size):
+    idx = np.random.randint((len(X)-batch_size)-1)
+    X_batch = X[idx:idx+batch_size,:]
+    y_batch = X[idx:idx+batch_size,:]
+    yield X_batch, y_batch
+
+
+n_inputs = vocab_size
+n_outputs = vocab_size
 n_steps = 25
 n_neurons = 100
-# give one hot numeric strings
 
-X = tf.placeholder(tf.float32, [None, n_steps, n_inputs])
-Y = tf.placeholder(tf.float32, [None, vocab_size])
 
-basic_cell = tf.contrib.rnn.BasicRNNCell(num_units=n_neurons)
-outputs, states = tf.nn.dynamic_rnn(basic_cell, X, dtype=tf.float32, sequence_length=seq_length)
 
+X = tf.placeholder(tf.int32, [None, n_steps])
+# in line one hot encoding in tf, we tried to one hot everything then pass it through but had trouble creating a fetch batch for it
+one_hot_X = tf.one_hot(X, vocab_size)
+y = tf.placeholder(tf.int32, [None, n_steps])
+
+cell = tf.contrib.rnn.OutputProjectionWrapper(tf.contrib.rnn.BasicRNNCell(
+        num_units=n_neurons, activation=tf.nn.relu),output_size=n_outputs)
+    
+outputs, states = tf.nn.dynamic_rnn(cell, one_hot_X, dtype=tf.float32) # this takes size [None, n_steps, n_inputs]
+learning_rate = 0.001
+
+logits = tf.layers.dense(outputs,vocab_size, activation=tf.tanh)
+xenthropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=y)
+loss = tf.reduce_mean(xenthropy)
+optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
+training_op = optimizer.minimize(loss)
+
+
+
+
+# FIXME add accuracy, refer to Geron pg 397
 init = tf.global_variables_initializer()
 
-oneHot = tf.one_hot(X_modified[0,:],vocab_size)
-
-def fetch_batch(X, y,strt_pt ,batch_size=25):
-    st = strt_pt
-    end = strt_pt + batch_size
-    X_batch = X[st:end,:]
-    y_batch = y[st:end,:]
-     
-batch = fetch_batch(X, y, 10)
-
-
+n_epochs = 1000
+batch_size = 50
 with tf.Session() as sess:
     init.run()
-    one_hot_out = oneHot.eval()
-    print(one_hot_out)
-    
-    
+    print(X.get_shape())
+    print(y.get_shape())
+    print(one_hot_X.get_shape())
+    for epoch in range(n_epochs):
+        for X_batch, y_batch in fetchBatch(X_modified,y_modified,batch_size):
+            sess.run(training_op, feed_dict={X:X_batch, y:y_batch})
+            if epoch % 100 == 0:
+                y_pred = sess.run(outputs, feed_dict={X:X_batch})
+                print(f"The shape of the outputs is: {y_pred.shape}")
