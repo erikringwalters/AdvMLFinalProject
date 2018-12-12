@@ -2,7 +2,7 @@
 import tensorflow as tf
 import numpy as np
 
-data = open('E:/Documents/beemovie.txt', 'r').read() # should be simple plain text file
+data = open('./Documents/beemovie.txt', 'r').read() # should be simple plain text file
 
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
@@ -30,6 +30,7 @@ y_modified = np.reshape(y, (len(y), seq_length))
 # @func: Picks a random number 
 def fetchBatch(X,y,batch_size):
     idx = np.random.randint((len(X)-batch_size)-1)
+    print(idx)
     X_batch = X[idx:idx+batch_size,:]
     y_batch = X[idx:idx+batch_size,:]
     yield X_batch, y_batch
@@ -65,7 +66,7 @@ training_op = optimizer.minimize(loss)
 # FIXME add accuracy, refer to Geron pg 397
 init = tf.global_variables_initializer()
 
-n_epochs = 1000
+n_epochs = 1
 batch_size = 50
 with tf.Session() as sess:
     init.run()
