@@ -30,18 +30,14 @@ y_modified = np.reshape(y, (len(y), seq_length))
 # @func: Picks a random number 
 def fetchBatch(X,y,batch_size):
     idx = np.random.randint((len(X)-batch_size)-1)
-    print(idx)
     X_batch = X[idx:idx+batch_size,:]
     y_batch = X[idx:idx+batch_size,:]
     yield X_batch, y_batch
-
 
 n_inputs = vocab_size
 n_outputs = vocab_size
 n_steps = 25
 n_neurons = 100
-
-
 
 X = tf.placeholder(tf.int32, [None, n_steps])
 # in line one hot encoding in tf, we tried to one hot everything then pass it through but had trouble creating a fetch batch for it
@@ -53,20 +49,15 @@ cell = tf.contrib.rnn.OutputProjectionWrapper(tf.contrib.rnn.BasicRNNCell(
     
 outputs, states = tf.nn.dynamic_rnn(cell, one_hot_X, dtype=tf.float32) # this takes size [None, n_steps, n_inputs]
 learning_rate = 0.001
-
-logits = tf.layers.dense(outputs,vocab_size, activation=tf.tanh)
-xenthropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=y)
+xenthropy = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=outputs, labels=y)
 loss = tf.reduce_mean(xenthropy)
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 training_op = optimizer.minimize(loss)
 
-
-
-
 # FIXME add accuracy, refer to Geron pg 397
 init = tf.global_variables_initializer()
 
-n_epochs = 1
+n_epochs = 100
 batch_size = 50
 with tf.Session() as sess:
     init.run()
