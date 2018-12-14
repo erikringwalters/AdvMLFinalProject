@@ -1,7 +1,7 @@
 import tensorflow as tf
 import numpy as np
 
-data = open('E:/Documents/beemovie.txt', 'r').read() # should be simple plain text file
+data = open('E:/Documents/alice.txt', 'r').read() # should be simple plain text file
 
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
@@ -70,9 +70,15 @@ training_op = optimizer.minimize(loss)
 
 
 
-# =================REMOVE==========================
+# sample is outputing repeating characters, why?
+
 def sample(seed_pred, n):
     start_idx = 0
+    # list of indexes we predict
+    output = []
+    # Debug for seeing the prob distributions
+    probs_list = []
+    
     for i in range(n):
       # This creates the moving window that starts with our input sequence, and the new input is appended at each loop
       window = seed_pred[start_idx:start_idx + n_steps]
@@ -80,37 +86,42 @@ def sample(seed_pred, n):
       window = window.reshape((1, n_steps))
       # We evaluate the softmax of the outputs by inserting our array window into the network and getting the logits
       char_prob = y_probs.eval(feed_dict={X:window})
+      probs_list.append(char_prob)
       # We only care about the last character softmaxed outputs, as this is the probability of a choice of one of len(vocab_size) characters
       last_char = char_prob[0][n_steps-1]
-      # We get an index value by pulling a random value /according to the probabilty distribution of the last_chars softmax
+      # We get an index value by pulling a random value /according to the probabilty distribution of the last_chars softmax      
       ind = np.random.choice(range(vocab_size), p=last_char.ravel())
+      # tack that onto our big list
+      output.append(ind)
       # reshape ind so we can tack it to the bottom of seed_pred
       ind = ind.reshape((1,))
       # append it to seed_pred
       seed_pred = np.append(seed_pred, ind, axis=0)
       # move the window up one and continue
       start_idx +=1
-    return seed_pred[n:] 
-# =================================================
+    return output, probs_list
+
 
 
 # FIXME add accuracy, refer to Geron pg 397
 init = tf.global_variables_initializer()
 
-n_epochs = 1000
+batch_list = []
+n_epochs = 100000
 batch_size = 50
 with tf.Session() as sess:
     init.run()
     for epoch in range(n_epochs):
         for X_batch, y_batch in fetchBatch(X_modified,y_modified,batch_size):
             sess.run(training_op, feed_dict={X:X_batch, y:y_batch})
-            if epoch % 100 == 0:
+            if epoch % 10000 == 0:
                 cur_loss = loss.eval(feed_dict={X:X_batch, y:y_batch})
                 print(f"Loss: \t{cur_loss}")
                 solo_batch = single_batch(X_modified)
+                batch_list.append(solo_batch)
                 txt = ''.join(ix_to_char[ix] for ix in solo_batch)
                 print('----SOLO BATCH \n %s \n----' % (txt, ))
-                smpl = sample(solo_batch,100)
+                smpl, _ = sample(solo_batch,100)
                 txt = ''.join(ix_to_char[ix] for ix in smpl)
                 print('----OUTPUT \n %s \n----' % (txt, ))
                 
