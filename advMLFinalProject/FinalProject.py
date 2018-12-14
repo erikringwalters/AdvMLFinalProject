@@ -32,19 +32,22 @@ def fetchBatch(X,y,batch_size):
     y_batch = X[idx:idx+batch_size,:]
     yield X_batch, y_batch
 
+# Pulls a single random row from X_modifed
+def single_batch(X):
+    rnd = np.random.randint(len(X)-1)
+    return X[rnd]
+    
+
 
 # @params: seed_id: a random indicie to seed the RNNs output
 # @params: n: the number of characters to generate in total
-
-    
-    
-    
     
 n_inputs = vocab_size
 n_outputs = vocab_size
 n_steps = 25
 n_neurons = 100
 
+# FIXME: add tf names to seperate this graph from others we make 
 
 
 X = tf.placeholder(tf.int32, [None, n_steps])
@@ -64,7 +67,32 @@ loss = tf.reduce_mean(xenthropy)
 optimizer = tf.train.AdamOptimizer(learning_rate=learning_rate)
 training_op = optimizer.minimize(loss)
 
-tf.reset_default_graph()
+
+
+
+# =================REMOVE==========================
+def sample(seed_pred, n):
+    start_idx = 0
+    for i in range(n):
+      # This creates the moving window that starts with our input sequence, and the new input is appended at each loop
+      window = seed_pred[start_idx:start_idx + n_steps]
+      # We then rotate it to batch_size = 1 and 25 cols for entry into the X tensor
+      window = window.reshape((1, n_steps))
+      # We evaluate the softmax of the outputs by inserting our array window into the network and getting the logits
+      char_prob = y_probs.eval(feed_dict={X:window})
+      # We only care about the last character softmaxed outputs, as this is the probability of a choice of one of len(vocab_size) characters
+      last_char = char_prob[0][n_steps-1]
+      # We get an index value by pulling a random value /according to the probabilty distribution of the last_chars softmax
+      ind = np.random.choice(range(vocab_size), p=last_char.ravel())
+      # reshape ind so we can tack it to the bottom of seed_pred
+      ind = ind.reshape((1,))
+      # append it to seed_pred
+      seed_pred = np.append(seed_pred, ind, axis=0)
+      # move the window up one and continue
+      start_idx +=1
+    return seed_pred[n:] 
+# =================================================
+
 
 # FIXME add accuracy, refer to Geron pg 397
 init = tf.global_variables_initializer()
@@ -79,10 +107,16 @@ with tf.Session() as sess:
             if epoch % 100 == 0:
                 cur_loss = loss.eval(feed_dict={X:X_batch, y:y_batch})
                 print(f"Loss: \t{cur_loss}")
-                for single_batch, _ in fetchBatch(X_modified,y_modified,1):
-                    probs = y_probs.eval(feed_dict={X:single_batch})
-                    
+                solo_batch = single_batch(X_modified)
+                txt = ''.join(ix_to_char[ix] for ix in solo_batch)
+                print('----SOLO BATCH \n %s \n----' % (txt, ))
+                smpl = sample(solo_batch,100)
+                txt = ''.join(ix_to_char[ix] for ix in smpl)
+                print('----OUTPUT \n %s \n----' % (txt, ))
                 
+                    
+
+tf.reset_default_graph()             
 
 
 
