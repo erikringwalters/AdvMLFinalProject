@@ -1,7 +1,8 @@
 import tensorflow as tf
 import numpy as np
+tf.reset_default_graph()             
 
-data = open('./alice.txt', 'r').read() # should be simple plain text file
+data = open('../alice.txt', 'r').read() # should be simple plain text file
 
 chars = list(set(data))
 data_size, vocab_size = len(data), len(chars)
@@ -114,7 +115,7 @@ with tf.Session() as sess:
             sess.run(training_op, feed_dict={X:X_batch, y:y_batch})
         if epoch % 10 == 0:
             cur_loss = loss.eval(feed_dict={X:X_batch, y:y_batch})
-            losses[epoch] = cur_loss
+            losses.append(cur_loss)
             print(f"Loss: \t{cur_loss}")
             solo_batch = single_batch(X_modified)
             smpl = sample(solo_batch,25)
@@ -124,6 +125,5 @@ with tf.Session() as sess:
                     
 
 tf.reset_default_graph()             
-
 
 
